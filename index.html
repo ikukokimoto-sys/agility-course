@@ -1320,7 +1320,7 @@ version 0.6.9
 	} //
 
 
-	const PRECISION = 7;
+	const PRECISION = 5;
 
 	function buildHeader() {
 
@@ -1389,9 +1389,6 @@ version 0.6.9
             interpolation = "vertex"
         )
         point3f[] points = [${buildVector3Array( attributes.position, count )}]
-        float2[] primvars:st = [${buildVector2Array( attributes.uv, count )}] (
-            interpolation = "vertex"
-        )
         uniform token subdivisionScheme = "none"
         uniform bool doubleSided = 1
     }
@@ -1673,30 +1670,30 @@ function buildGrid(){
 const mat=c=>new THREE.MeshLambertMaterial({color:c});
 const box=(w,h,d,c)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));
 const cyl=(r,h,c,s)=>new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,s||12),mat(c));
-const rod3=(a,b,r,c,seg)=>{const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A),m=cyl(r,d.length(),c,seg||8);
+const rod3=(a,b,r,c,seg)=>{const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A),m=cyl(r,d.length(),c,seg||6);
   m.position.copy(A).add(B).multiplyScalar(0.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;};
 const bandedPole=(h,r,base,bands,bandColor)=>{const g=new THREE.Group();
   const cuts=[0].concat(...bands).concat([h]);
-  for(let k=0;k<cuts.length-1;k++){const a=cuts[k],b=cuts[k+1];if(b-a<=0)continue;const m=cyl(r,b-a,k%2?bandColor:base,10);m.position.y=(a+b)/2;g.add(m);}
+  for(let k=0;k<cuts.length-1;k++){const a=cuts[k],b=cuts[k+1];if(b-a<=0)continue;const m=cyl(r,b-a,k%2?bandColor:base,6);m.position.y=(a+b)/2;g.add(m);}
   return g;};
 class ArcPath extends THREE.Curve{
   constructor(L,b){super();this.L=L;this.b=b;}
   getPoint(t,target){target=target||new THREE.Vector3();const L=this.L,b=this.b;
-    if(Math.abs(b)<1e-4)return target.set(0,0.32,(t-0.5)*L);
-    const R=L/b,f=(t-0.5)*b;return target.set(R-R*Math.cos(f),0.32,R*Math.sin(f));}
+    if(Math.abs(b)<1e-4)return target.set(0,0.34,(t-0.5)*L);
+    const R=L/b,f=(t-0.5)*b;return target.set(R-R*Math.cos(f),0.34,R*Math.sin(f));}
 }
 const TYPES={
   hurdle:{label:'ハードル',color:'#1F5FA8',r:()=>1.4,make(){
     /* wing: tall inner post, sloped top down to a short outer post, vertical blue/white stripes */
     const g=new THREE.Group(),BL=1.35,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
-    const tube=(x1,y1,x2,y2,c)=>{const L=Math.hypot(x2-x1,y2-y1),m=cyl(0.018,L,c||0xffffff,8);
+    const tube=(x1,y1,x2,y2,c)=>{const L=Math.hypot(x2-x1,y2-y1),m=cyl(0.018,L,c||0xffffff,6);
       m.position.set((x1+x2)/2,(y1+y2)/2,0);m.rotation.z=-Math.atan2(x2-x1,y2-y1);return m;};
     const topAt=d=>OH+(SH-OH)*(1-d/WW);
     [-1,1].forEach(sd=>{
       const w=new THREE.Group();w.position.x=sd*half;
       const X=d=>sd*d;
       w.add(tube(0,0,0,IN));
-      const cap=new THREE.Mesh(new THREE.SphereGeometry(0.022,8,6),mat(0xffffff));cap.position.y=IN;w.add(cap);
+      const cap=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,4),mat(0xffffff));cap.position.y=IN;w.add(cap);
       w.add(tube(X(WW),0.03,X(WW),OH-0.06));
       w.add(tube(X(WW),OH-0.06,X(WW-0.06),OH+0.03));
       w.add(tube(X(WW-0.06),OH+0.03,0,SH));
@@ -1712,20 +1709,20 @@ const TYPES={
       const ot=box(0.045,0.035,0.05,0x222222);ot.position.set(X(WW),0.017,0);w.add(ot);
       const cup=box(0.05,0.035,0.05,0x222222);cup.position.set(-sd*0.03,BH-0.035,0);w.add(cup);
       g.add(w);});
-    [[0.31,0xffffff],[0.38,0x1F5FC8],[0.31,0xffffff]].reduce((x,[f,c])=>{const L=BL*f,seg=cyl(0.017,L,c,10);
+    [[0.31,0xffffff],[0.38,0x1F5FC8],[0.31,0xffffff]].reduce((x,[f,c])=>{const L=BL*f,seg=cyl(0.017,L,c,6);
       seg.rotation.z=Math.PI/2;seg.position.set(x+L/2,BH,0);g.add(seg);return x+L;},-BL/2);
     return g;}},
   tunnel:{label:'トンネル',color:'#F2B705',defaults:{len:5,bend:0},r:p=>p.len/2+0.2,make(p){
     /* yellow corrugated tube: smooth skin + dense ribs, darker inside, soft rims at both mouths */
     const g=new THREE.Group(),path=new ArcPath(p.len,p.bend*Math.PI/180),R=0.3;
-    const geo=new THREE.TubeGeometry(path,64,R,20,false);
+    const geo=new THREE.TubeGeometry(path,Math.max(16,Math.round(p.len*5)),R,14,false);
     g.add(new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0xF5C518,side:THREE.FrontSide})));
     g.add(new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0xC99A08,side:THREE.BackSide})));
-    const ribGeo=new THREE.TorusGeometry(R+0.004,0.016,5,22),ribMat=new THREE.MeshLambertMaterial({color:0xE3B10C});
-    const n=Math.max(8,Math.round(p.len/0.11));
+    const ribGeo=new THREE.TorusGeometry(R+0.004,0.016,3,14),ribMat=new THREE.MeshLambertMaterial({color:0xE3B10C});
+    const n=Math.max(6,Math.round(p.len/0.2));
     for(let k=1;k<n;k++){const t=k/n,pt=path.getPoint(t),tg=path.getTangent(t);
       const rib=new THREE.Mesh(ribGeo,ribMat);rib.position.copy(pt);rib.lookAt(pt.clone().add(tg));g.add(rib);}
-    const rimGeo=new THREE.TorusGeometry(R+0.01,0.03,8,28),rimMat=new THREE.MeshLambertMaterial({color:0xF8D23A});
+    const rimGeo=new THREE.TorusGeometry(R+0.01,0.03,5,16),rimMat=new THREE.MeshLambertMaterial({color:0xF8D23A});
     [0,1].forEach(t=>{const pt=path.getPoint(t),tg=path.getTangent(t);
       const rim=new THREE.Mesh(rimGeo,rimMat);rim.position.copy(pt);rim.lookAt(pt.clone().add(tg));g.add(rim);});
     return g;}},
@@ -1741,7 +1738,7 @@ const TYPES={
     /* padded blue tire with four yellow sections, padded blue upper posts on steel pipes, flat steel feet */
     const g=new THREE.Group(),C=0.95,RR=0.36,TR=0.1,PX=0.56,ST=0x9aa0a4,BL=0x1E5FC8,YE=0xF0C020;
     const segs=[];for(let k=0;k<4;k++){const a0=Math.PI/4+k*Math.PI/2;segs.push([a0-Math.PI/12,Math.PI/6,YE]);segs.push([a0+Math.PI/12,Math.PI/3,BL]);}
-    segs.forEach(([a,arc,c])=>{const t=new THREE.Mesh(new THREE.TorusGeometry(RR,TR,12,16,arc),mat(c));t.rotation.z=a;t.position.y=C;g.add(t);});
+    segs.forEach(([a,arc,c])=>{const t=new THREE.Mesh(new THREE.TorusGeometry(RR,TR,8,12,arc),mat(c));t.rotation.z=a;t.position.y=C;g.add(t);});
     [-1,1].forEach(q=>{
       g.add(rod3([q*PX,0.02,0],[q*PX,0.6,0],0.02,ST));
       const pad=box(0.11,0.72,0.11,BL);pad.position.set(q*PX,0.6+0.36,0);g.add(pad);
@@ -1763,7 +1760,7 @@ const TYPES={
        silver edges, white ribs underneath, cross braces and small wheels at one foot */
     const g=new THREE.Group(),len=2.7,hgt=1.7,th=Math.asin(hgt/len),half=Math.sqrt(len*len-hgt*hgt),W=0.9,T=0.05;
     [1,-1].forEach(sd=>{
-      const pn=new THREE.Group();pn.position.set(0,hgt,0);pn.rotation.x=sd*th;
+      const pn=new THREE.Group();pn.position.set(0,hgt+0.024,0);pn.rotation.x=sd*th;   /* +2.4 cm: the slab's lower edge no longer dips below the ground */
       const bl=box(W,T,len-1.0,0x1F7FC0);bl.position.z=sd*(len-1.0)/2;pn.add(bl);
       const C=T/Math.tan(th),sh=new THREE.Shape(),U=u=>sd*u;
       sh.moveTo(U(len-1.0),-T/2);sh.lineTo(U(len-C),-T/2);sh.lineTo(U(len),T/2-0.002);sh.lineTo(U(len),T/2);sh.lineTo(U(len-1.0),T/2);sh.lineTo(U(len-1.0),-T/2);
@@ -1842,6 +1839,67 @@ const TYPES={
     const plate=box(0.5,0.01,0.45,0x55595a);plate.position.y=0.06;g.add(plate);
     return g;}}
 };
+
+/* simplified shapes for the exported 3D file: same size, position, direction and main colours as the editing view,
+   but only a few plain parts each (small details like ribs, stripes, feet and knobs are left out) so the file stays light */
+function makeLite(type,p){
+  const g=new THREE.Group(),WH=0xf4f4f4,BLU=0x1F5FC8;
+  const place=(m,x,y,z)=>{m.position.set(x,y,z);g.add(m);return m;};
+  if(type==='hurdle'){
+    const BL=1.35,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
+    [-1,1].forEach(sd=>{
+      place(box(0.04,IN,0.04,WH),sd*half,IN/2,0);
+      const sh=new THREE.Shape();sh.moveTo(0,BOT);sh.lineTo(sd*WW,BOT);sh.lineTo(sd*WW,OH);sh.lineTo(0,SH);sh.lineTo(0,BOT);
+      const geo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:false});geo.translate(0,0,-0.01);
+      const w=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x1F5FA8,side:THREE.DoubleSide}));w.position.x=sd*half;g.add(w);
+    });
+    let x=-BL/2;[[0.31,WH],[0.38,BLU],[0.31,WH]].forEach(([f,c])=>{const L=BL*f;place(box(L,0.04,0.04,c),x+L/2,BH,0);x+=L;});
+  }else if(type==='tunnel'){
+    const path=new ArcPath(p.len,p.bend*Math.PI/180);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(path,Math.max(12,Math.round(p.len*3)),0.3,12,false),new THREE.MeshLambertMaterial({color:0xF5C518,side:THREE.DoubleSide})));
+  }else if(type==='weave'){
+    const n=12,sp=0.6,L=(n-1)*sp;
+    place(box(0.05,0.015,L+0.1,0x9aa0a4),0,0.008,0);
+    for(let i=0;i<n;i++)place(cyl(0.02,1.0,0xffffff,6),0,0.512,i*sp-L/2);
+  }else if(type==='tire'){
+    const C=0.95,RR=0.36,TR=0.1,PX=0.56;
+    place(new THREE.Mesh(new THREE.TorusGeometry(RR,TR,8,16),mat(0x1E5FC8)),0,C,0);
+    [-1,1].forEach(q=>place(box(0.11,1.32,0.11,0x1E5FC8),q*PX,0.66,0));
+    place(box(2*PX,0.015,0.06,0x9aa0a4),0,0.008,0.05);
+  }else if(type==='longjump'){
+    [[-0.45,0.12,0x1B2F8F],[-0.15,0.15,0xf4f4f4],[0.15,0.18,0x1B2F8F],[0.45,0.21,0xf4f4f4]].forEach(([z,h,c])=>place(box(1.2,h,0.16,c),0,h/2,z));
+    [-1,1].forEach(x=>[-1,1].forEach(z=>place(cyl(0.018,1.2,0xffffff,6),x*0.8,0.62,z*0.72)));
+  }else if(type==='wall'){
+    const WL=1.2;
+    [-1,1].forEach(q=>place(box(0.3,1.2,0.3,0x1B2F8F),q*(WL/2+0.15),0.6,0));
+    [0.075,0.225,0.375].forEach(y=>place(box(WL,0.14,0.18,0xf4f6f8),0,y,0));
+    const r=cyl(0.09,WL,0x1B2F8F,8);r.rotation.z=Math.PI/2;place(r,0,0.52,0);
+  }else if(type==='aframe'){
+    const len=2.7,hgt=1.7,th=Math.asin(hgt/len),W=0.9,T=0.05;
+    [1,-1].forEach(sd=>{
+      const pn=new THREE.Group();pn.position.set(0,hgt+0.024,0);pn.rotation.x=sd*th;
+      const a=box(W,T,len-1.0,0x1F7FC0);a.position.z=sd*(len-1.0)/2;pn.add(a);
+      const b=box(W,T,1.0,0xE8B82A);b.position.z=sd*(len-0.5);pn.add(b);g.add(pn);});
+  }else if(type==='dogwalk'){
+    const L=3.6,H=1.25,th=Math.asin(H/L),T=0.05,BW=0.3;
+    place(box(BW,T,L,0x1F7FC0),0,H,0);
+    [-1,1].forEach(sd=>{
+      const ramp=new THREE.Group();ramp.position.set(0,H,sd*L/2);ramp.rotation.x=sd*th;
+      const a=box(BW,T,L-0.9,0x1F7FC0);a.position.z=sd*(L-0.9)/2;ramp.add(a);
+      const b=box(BW,T,0.9,0xE8B82A);b.position.z=sd*(L-0.45);ramp.add(b);g.add(ramp);
+      [-1,1].forEach(q=>place(box(0.04,H-T/2,0.04,WH),q*0.3,(H-T/2)/2,sd*(L/2-0.15)));
+    });
+  }else if(type==='seesaw'){
+    const L=3.6,P=0.6,th=Math.asin((P+0.02)/(L/2));
+    const plank=new THREE.Group();plank.position.y=P;plank.rotation.x=-th;
+    const a=box(0.3,0.05,1.8,0x2A8CC4);a.position.y=0.035;plank.add(a);
+    [-1,1].forEach(sd=>{const b=box(0.3,0.05,0.9,0xE8B82A);b.position.set(0,0.035,sd*(L/2-0.45));plank.add(b);});
+    g.add(plank);
+    [-1,1].forEach(x=>place(box(0.04,P-0.03,0.04,WH),x*0.3,(P-0.03)/2,0));
+    place(box(0.5,0.01,0.45,0x55595a),0,0.06,0);
+  }else return null;
+  return g;
+}
 
 /* the selection ring doubles as the rotate handle: thick enough to grab comfortably, drag it
    anywhere around the obstacle and it turns to face the pointer */
@@ -2581,7 +2639,7 @@ function buildExportScene(opt){
   state.objects.forEach((o,i)=>{
     const w=new THREE.Group();w.name=TYPES[o.type].label+'_'+(i+1);
     w.position.copy(o.group.position);w.rotation.y=o.group.rotation.y;
-    const body=o.body.clone();
+    const body=makeLite(o.type,o.params)||o.body.clone();
     const drop=[];body.traverse(m=>{if(!m.visible||m.isSprite)drop.push(m);});
     drop.forEach(m=>{if(m.parent)m.parent.remove(m);});
     w.add(body);course.add(w);
@@ -2612,19 +2670,33 @@ function buildExportScene(opt){
 
   if(opt.usdz){
     /* the USDZ writer only understands plain standard materials, triangles with normals, and no lines */
-    const del=[];
+    const del=[],matCache={};
     root.traverse(m=>{
       if(m.isLine||m.isPoints){del.push(m);return;}
       if(!m.isMesh)return;
       const old=Array.isArray(m.material)?m.material[0]:m.material;
       if(!(old.isMeshStandardMaterial)){
-        m.material=new THREE.MeshStandardMaterial({color:old.color?old.color.clone():0xcccccc,roughness:0.85,metalness:0});
+        const key=old.color?old.color.getHex():0xcccccc;
+        m.material=matCache[key]||(matCache[key]=new THREE.MeshStandardMaterial({color:key,roughness:0.85,metalness:0}));
       }
       if(!m.geometry.attributes.normal){m.geometry=m.geometry.clone();m.geometry.computeVertexNormals();}
     });
     del.forEach(m=>{if(m.parent)m.parent.remove(m);});
   }
   root.updateMatrixWorld(true);
+  /* AR places the lowest point of the model on the detected floor, so nothing may dip below y=0:
+     the few tilted tips (dog walk / see-saw) are flattened onto the ground and written in world coordinates,
+     so the file's bounding box is exact as well */
+  {const fix=[];
+   root.traverse(m=>{if(m.isMesh&&new THREE.Box3().setFromObject(m).min.y<-0.0005)fix.push(m);});
+   fix.forEach(m=>{
+     const g=m.geometry.clone();g.applyMatrix4(m.matrixWorld);
+     const pos=g.attributes.position;for(let k=0;k<pos.count;k++)if(pos.getY(k)<0)pos.setY(k,0);
+     g.boundingBox=null;g.boundingSphere=null;
+     if(m.parent)m.parent.remove(m);
+     m.geometry=g;m.position.set(0,0,0);m.quaternion.identity();m.scale.set(1,1,1);m.updateMatrix();
+     course.add(m);});
+   root.updateMatrixWorld(true);}
   return root;
 }
 /* tiny zip writer (no compression) — only used inside the Claude page, which allows .zip but not .usdz */
