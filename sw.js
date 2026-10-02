@@ -1,5 +1,5 @@
-// 更新したときは、下の CACHE の番号を上げてください（例：course-v21 → course-v22）
-const CACHE = 'course-v21';
+// 更新したときは、下の CACHE の番号を上げてください（例：course-v22 → course-v23）
+const CACHE = 'course-v22';
 const FILES = [
   './',
   './index.html',
