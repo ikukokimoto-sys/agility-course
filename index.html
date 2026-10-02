@@ -111,7 +111,7 @@ textarea{width:100%;height:96px;font-family:ui-monospace,Consolas,monospace;font
     </div>
   </div>
   <aside>
-    <h1>コース配置 試作版</h1>
+    <h1>コース配置 試作版 <span style="font-size:11px;font-weight:400;color:var(--muted)">版 v15</span></h1>
     <p class="ver">コース図の上に障害物を置いて、実寸の3Dデータを作る試作ツールです。</p>
     <p class="ver" style="margin-top:-8px">ARでの位置は<b>目安</b>です（練習用の設営向け）。正確な位置は、一番下の配置データの座標で測ってください。無料・無保証で、個別のサポートはしていません。</p>
 
@@ -2739,6 +2739,7 @@ document.getElementById('usdzBtn').onclick=async()=>{
   try{
     const u8=await new THREE.USDZExporter().parse(buildExportScene(exportOpts(true)));
     exportDone(msg,await saveModel('agility-course.usdz',u8,'model/vnd.usdz+zip'),'USDZ');
+    msg.textContent+='（'+(u8.length/1048576).toFixed(2)+'MB）';
   }catch(err){exportFail(msg,err);}
 };
 (function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera);})();
