@@ -111,7 +111,7 @@ textarea{width:100%;height:96px;font-family:ui-monospace,Consolas,monospace;font
     </div>
   </div>
   <aside>
-    <h1>コース配置 試作版 <span style="font-size:11px;font-weight:400;color:var(--muted)">版 v15</span></h1>
+    <h1>コース配置 試作版 <span style="font-size:11px;font-weight:400;color:var(--muted)">版 v21</span></h1>
     <p class="ver">コース図の上に障害物を置いて、実寸の3Dデータを作る試作ツールです。</p>
     <p class="ver" style="margin-top:-8px">ARでの位置は<b>目安</b>です（練習用の設営向け）。正確な位置は、一番下の配置データの座標で測ってください。無料・無保証で、個別のサポートはしていません。</p>
 
@@ -1847,16 +1847,31 @@ function makeLite(type,p){
   const place=(m,x,y,z)=>{m.position.set(x,y,z);g.add(m);return m;};
   if(type==='hurdle'){
     const BL=1.35,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
+    const topAt=d=>OH+(SH-OH)*(1-d/WW);
+    const solid=(pts,th,c,x0)=>{const sh=new THREE.Shape();pts.forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y));sh.lineTo(pts[0][0],pts[0][1]);
+      const geo=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false});geo.translate(0,0,-th/2);
+      const m=new THREE.Mesh(geo,mat(c));m.position.x=x0;g.add(m);};
+    const pipe=(x1,y1,x2,y2,r,c)=>g.add(rod3([x1,y1,0],[x2,y2,0],r,c,8));   /* round pipe between two points in the front plane */
     [-1,1].forEach(sd=>{
-      place(box(0.04,IN,0.04,WH),sd*half,IN/2,0);
-      const sh=new THREE.Shape();sh.moveTo(0,BOT);sh.lineTo(sd*WW,BOT);sh.lineTo(sd*WW,OH);sh.lineTo(0,SH);sh.lineTo(0,BOT);
-      const geo=new THREE.ExtrudeGeometry(sh,{depth:0.02,bevelEnabled:false});geo.translate(0,0,-0.01);
-      const w=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x1F5FA8,side:THREE.DoubleSide}));w.position.x=sd*half;g.add(w);
+      const X=sd*half;
+      place(box(0.04,IN,0.04,WH),X,IN/2,0);                      /* inner post (square) */
+      place(box(0.04,OH,0.04,WH),X+sd*WW,OH/2,0);                /* outer leg of the wing (square) */
+      pipe(X,BOT,X+sd*WW,BOT,0.015,WH);                         /* bottom rail of the wing */
+      pipe(X+sd*WW,OH,X,SH,0.015,WH);                           /* sloped top edge of the wing */
+      solid([[0,BOT],[sd*WW,BOT],[sd*WW,OH],[0,SH]],0.03,0x1F5FA8,X);
     });
-    let x=-BL/2;[[0.31,WH],[0.38,BLU],[0.31,WH]].forEach(([f,c])=>{const L=BL*f;place(box(L,0.04,0.04,c),x+L/2,BH,0);x+=L;});
+    const bar=cyl(0.02,BL,WH,10);bar.rotation.z=Math.PI/2;place(bar,0,BH,0);   /* jump bar: one round white bar */
   }else if(type==='tunnel'){
-    const path=new ArcPath(p.len,p.bend*Math.PI/180);
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(path,Math.max(12,Math.round(p.len*3)),0.3,12,false),new THREE.MeshLambertMaterial({color:0xF5C518,side:THREE.DoubleSide})));
+    /* a plain solid strip 0.6 m wide and 0.6 m high that follows the tunnel's curve (like the reference data):
+       the outline is walked along the centre line, then pushed up into a closed block */
+    const W2=0.3,H=0.6,path=new ArcPath(p.len,p.bend*Math.PI/180),n=Math.max(6,Math.round(p.len*1.6));
+    const left=[],right=[];
+    for(let k=0;k<=n;k++){const t=k/n,c=path.getPoint(t),tg=path.getTangent(t);
+      left.push([c.x+tg.z*W2,-(c.z-tg.x*W2)]);right.push([c.x-tg.z*W2,-(c.z+tg.x*W2)]);}
+    const pts=left.concat(right.reverse()),sh=new THREE.Shape();
+    pts.forEach(([x,y],k)=>k?sh.lineTo(x,y):sh.moveTo(x,y));sh.lineTo(pts[0][0],pts[0][1]);
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:H,bevelEnabled:false});geo.rotateX(-Math.PI/2);
+    g.add(new THREE.Mesh(geo,mat(0xF5C518)));
   }else if(type==='weave'){
     const n=12,sp=0.6,L=(n-1)*sp;
     place(box(0.05,0.015,L+0.1,0x9aa0a4),0,0.008,0);

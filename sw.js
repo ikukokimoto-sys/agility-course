@@ -1,5 +1,5 @@
-// 更新したときは、下の CACHE の番号を上げてください（例：course-v15 → course-v16）
-const CACHE = 'course-v15';
+// 更新したときは、下の CACHE の番号を上げてください（例：course-v21 → course-v22）
+const CACHE = 'course-v21';
 const FILES = [
   './',
   './index.html',
@@ -26,12 +26,22 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// ネットにつながっているときは、いつも最新のファイルを取りに行く。
+// つながらないとき（電波のない現場など）だけ、保存してある分を使う。
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Googleフォントなど外部は、そのままネットから
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req))
+    fetch(req, { cache: 'no-cache' })
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req, { ignoreSearch: true }))
   );
 });
