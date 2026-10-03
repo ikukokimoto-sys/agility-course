@@ -111,7 +111,7 @@ textarea{width:100%;height:96px;font-family:ui-monospace,Consolas,monospace;font
     </div>
   </div>
   <aside>
-    <h1>コース配置 試作版 <span style="font-size:11px;font-weight:400;color:var(--muted)">版 v23</span></h1>
+    <h1>コース配置 試作版 <span style="font-size:11px;font-weight:400;color:var(--muted)">版 v24</span></h1>
     <p class="ver">コース図の上に障害物を置いて、実寸の3Dデータを作る試作ツールです。</p>
     <p class="ver" style="margin-top:-8px">ARでの位置は<b>目安</b>です（練習用の設営向け）。正確な位置は、一番下の配置データの座標で測ってください。無料・無保証で、個別のサポートはしていません。</p>
 
@@ -1687,7 +1687,7 @@ class ArcPath extends THREE.Curve{
 const TYPES={
   hurdle:{label:'ハードル',color:'#1F5FA8',r:()=>1.4,make(){
     /* wing: tall inner post, sloped top down to a short outer post, vertical blue/white stripes */
-    const g=new THREE.Group(),BL=1.35,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
+    const g=new THREE.Group(),BL=1.2,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
     const tube=(x1,y1,x2,y2,c)=>{const L=Math.hypot(x2-x1,y2-y1),m=cyl(0.018,L,c||0xffffff,6);
       m.position.set((x1+x2)/2,(y1+y2)/2,0);m.rotation.z=-Math.atan2(x2-x1,y2-y1);return m;};
     const topAt=d=>OH+(SH-OH)*(1-d/WW);
@@ -1848,7 +1848,7 @@ function makeLite(type,p){
   const g=new THREE.Group(),WH=0xf4f4f4,BLU=0x1F5FC8;
   const place=(m,x,y,z)=>{m.position.set(x,y,z);g.add(m);return m;};
   if(type==='hurdle'){
-    const BL=1.35,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
+    const BL=1.2,half=BL/2+0.03,BH=0.5,WW=0.55,IN=1.2,SH=0.91,OH=0.42,BOT=0.1;
     const topAt=d=>OH+(SH-OH)*(1-d/WW);
     const solid=(pts,th,c,x0)=>{const sh=new THREE.Shape();pts.forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y));sh.lineTo(pts[0][0],pts[0][1]);
       const geo=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false});geo.translate(0,0,-th/2);
